@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Buku Tamu Disnakertrans Maluku</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<!-- SDK Firebase v8 -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif}
+body{min-height:100vh;background:#eef2f7}
+
+/* ===== LOGIN ===== */
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(135deg,#0a3d62,#1e5f8e)}
+.login-card{background:#fff;width:100%;max-width:400px;border-radius:18px;padding:34px 30px;box-shadow:0 25px 60px rgba(0,0,0,.35);text-align:center;border-top:6px solid #f6b93b}
+.login-card .logo{width:70px;height:70px;background:#0a3d62;border-radius:50%;color:#f6b93b;font-size:9.5px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;text-align:center;line-height:1.2;margin-bottom:14px}
+.login-card h1{font-size:17px;color:#0a3d62;margin-bottom:3px}
+.login-card p{font-size:12.5px;color:#667;margin-bottom:18px}
+.login-card input{width:100%;padding:12px 14px;border:1.5px solid #d7dee8;border-radius:10px;font-size:14px;font-family:inherit;outline:none;margin-bottom:12px;background:#f8fafc}
+.login-card input:focus{border-color:#0a3d62;background:#fff;box-shadow:0 0 0 4px rgba(10,61,98,.12)}
+.btn-login{width:100%;padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#0a3d62,#1e5f8e);color:#fff;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit}
+.btn-login:disabled{opacity:.6}
+#connStatus{font-size:12px;padding:9px 12px;border-radius:10px;margin-bottom:14px;background:#f1f5f9;color:#556}
+#connStatus.ok{background:#dcfce7;color:#166534}
+#connStatus.bad{background:#fee2e2;color:#b91c1c;text-align:left;line-height:1.6}
+#loginError{display:none;background:#fee2e2;color:#b91c1c;font-size:13px;padding:10px;border-radius:10px;margin-bottom:12px;text-align:left}
+.hint{margin-top:15px;font-size:11px;color:#94a3b8}
+
+/* ===== DASHBOARD ===== */
+#dashboard{display:none}
+.topbar{background:#0a3d62;color:#fff;position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;padding:13px 22px;flex-wrap:wrap;gap:10px;box-shadow:0 3px 14px rgba(0,0,0,.2)}
+.topbar .brand{display:flex;align-items:center;gap:11px}
+.brand .mini{width:40px;height:40px;background:#fff;border-radius:50%;color:#0a3d62;font-size:7.5px;font-weight:700;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.2}
+.brand b{font-size:14.5px;display:block}
+.brand small{font-size:11px;color:#f6b93b}
+.topbar .actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.icon-btn{position:relative;width:42px;height:42px;border-radius:11px;border:none;background:rgba(255,255,255,.15);cursor:pointer;font-size:17px;color:#fff}
+.icon-btn:hover{background:rgba(255,255,255,.28)}
+.badge{position:absolute;top:-5px;right:-5px;min-width:20px;height:20px;background:#e55039;color:#fff;border-radius:10px;font-size:11px;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 5px;animation:pulse 1.2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(229,80,57,.6)}70%{box-shadow:0 0 0 9px rgba(229,80,57,0)}100%{box-shadow:0 0 0 0 rgba(229,80,57,0)}}
+.tb-btn{padding:10px 15px;border:none;border-radius:11px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;background:rgba(255,255,255,.15);color:#fff}
+.tb-btn.gold{background:#f6b93b;color:#0a3d62}
+.tb-btn.merah{background:#e55039;color:#fff}
+.tb-btn:hover{filter:brightness(1.08)}
+
+main{max-width:1180px;margin:22px auto;padding:0 16px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:15px;margin-bottom:18px}
+.stat{background:#fff;border-radius:14px;padding:17px;display:flex;gap:13px;align-items:center;box-shadow:0 4px 14px rgba(10,61,98,.07);border-left:4px solid #0a3d62}
+.stat .ic{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;background:#eef3f8}
+.stat b{font-size:24px;color:#0a3d62;display:block;line-height:1.1}
+.stat span{font-size:12px;color:#667}
+
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px}
+.search{flex:1;min-width:220px;position:relative}
+.search input{width:100%;padding:11px 12px 11px 38px;border:1.5px solid #d7dee8;border-radius:11px;font-size:14px;font-family:inherit;background:#fff;outline:none}
+.search .ic{position:absolute;left:12px;top:50%;transform:translateY(-50%)}
+.date-in,.btn{padding:10px 15px;border:1.5px solid #d7dee8;border-radius:11px;font-family:inherit;font-size:13px;background:#fff;cursor:pointer}
+.btn.hijau{background:#0a8f4e;color:#fff;border:none;font-weight:600}
+.btn.merah{background:#e55039;color:#fff;border:none;font-weight:600}
+
+.table-card{background:#fff;border-radius:14px;box-shadow:0 4px 14px rgba(10,61,98,.07);overflow:hidden}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:940px}
+th{background:#0a3d62;color:#fff;text-align:left;padding:12px 14px;font-size:11px;text-transform:uppercase;letter-spacing:.6px;position:sticky;top:0}
+td{padding:12px 14px;border-top:1px solid #eef2f7;font-size:13.5px;color:#1e293b;vertical-align:top}
+tr:hover td{background:#f4f8fd}
+.empty{text-align:center;color:#94a3b8;padding:44px!important}
+.btn-del{background:#fde8e8;border:none;border-radius:9px;padding:6px 10px;cursor:pointer}
+.waktu-cell{white-space:nowrap;color:#667;font-size:12.5px}
+.tag{display:inline-block;background:#eef3f8;color:#0a3d62;border-radius:8px;padding:3px 9px;font-size:11.5px;font-weight:600}
+
+/* ===== MODAL & TOAST ===== */
+.overlay{position:fixed;inset:0;background:rgba(10,30,50,.65);display:none;align-items:center;justify-content:center;z-index:60;padding:16px}
+.overlay.show{display:flex}
+.modal{background:#fff;border-radius:16px;padding:26px;width:100%;max-width:420px;max-height:92vh;overflow:auto;border-top:6px solid #f6b93b}
+.modal h3{color:#0a3d62;margin-bottom:18px;font-size:16.5px}
+.field{margin-bottom:13px}
+.field label{display:block;font-size:12.5px;font-weight:600;color:#0a3d62;margin-bottom:5px}
+.field input{width:100%;padding:10px 13px;border:1.5px solid #d7dee8;border-radius:10px;font-family:inherit;font-size:13.5px;outline:none;background:#f8fafc}
+.field input:focus{border-color:#0a3d62;background:#fff}
+.modal-actions{display:flex;gap:9px;margin-top:20px}
+.modal-actions button{flex:1;padding:11px;border:none;border-radius:10px;font-family:inherit;font-weight:600;cursor:pointer}
+.b-ghost{background:#eef2f7;color:#334}
+.b-primary{background:linear-gradient(135deg,#0a3d62,#1e5f8e);color:#fff}
+#setError{color:#b91c1c;font-size:12.5px;min-height:16px}
+#toastArea{position:fixed;top:18px;right:18px;z-index:100;display:flex;flex-direction:column;gap:10px}
+.toast{background:#fff;border-left:5px solid #f6b93b;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.2);padding:13px 17px;min-width:280px;max-width:330px;display:flex;gap:11px;animation:slideIn .35s ease;transition:.3s}
+.toast b{font-size:13.5px;color:#0a3d62;display:block}
+.toast p{font-size:12.5px;color:#667;margin-top:2px}
+@keyframes slideIn{from{transform:translateX(120%);opacity:0}to{transform:none;opacity:1}}
+</style>
+</head>
+<body>
+
+<!-- ================= LOGIN ================= -->
+<div class="login-wrap" id="loginScreen">
+  <div class="login-card">
+    <div class="logo">PEMERINTAH<br>PROV. MALUKU</div>
+    <h1>Admin Buku Tamu</h1>
+    <p>Disnakertrans Provinsi Maluku</p>
+
+    <div id="connStatus">⏳ Menghubungkan ke server Firebase...</div>
+
+    <div id="loginError"></div>
+    <form id="loginForm" autocomplete="off">
+      <input type="text" id="loginUser" placeholder="Username" required>
+      <input type="password" id="loginPass" placeholder="Password" required>
+      <button type="submit" class="btn-login" id="btnLogin">Masuk →</button>
+    </form>
+    <p class="hint">Default: <b>admin</b> / <b>admin123</b> — ubah di menu Pengaturan</p>
+  </div>
+</div>
+
+<!-- ================= DASHBOARD ================= -->
+<div id="dashboard">
+  <nav class="topbar">
+    <div class="brand">
+      <div class="mini">PEM.<br>MALUKU</div>
+      <div><b>Buku Tamu — Disnakertrans</b><small>Provinsi Maluku</small></div>
+    </div>
+    <div class="actions">
+      <button class="icon-btn" id="bellBtn" title="Tandai notifikasi dibaca">🔔<span class="badge" id="badge">0</span></button>
+      <button class="icon-btn" id="soundBtn" title="Suara notifikasi">🔊</button>
+      <button class="tb-btn gold" id="btnSettings">⚙️ Pengaturan</button>
+      <button class="tb-btn merah" onclick="logout()">Keluar</button>
+    </div>
+  </nav>
+
+  <main>
+    <div class="stats">
+      <div class="stat"><div class="ic">👥</div><div><b id="statTotal">0</b><span>Total Tamu</span></div></div>
+      <div class="stat"><div class="ic">📅</div><div><b id="statToday">0</b><span>Tamu Hari Ini</span></div></div>
+      <div class="stat"><div class="ic">🔔</div><div><b id="statUnread">0</b><span>Belum Dibaca</span></div></div>
+      <div class="stat"><div class="ic">💼</div><div><b id="statLamar">0</b><span>Melamar Pekerjaan</span></div></div>
+    </div>
+
+    <div class="toolbar">
+      <div class="search"><span class="ic">🔍</span>
+        <input type="text" id="searchInput" placeholder="Cari nama, instansi, tujuan...">
+      </div>
+      <input type="date" class="date-in" id="dateFilter">
+      <button class="btn hijau" onclick="exportCSV()">⬇ Export CSV</button>
+      <button class="btn merah" onclick="hapusSemua()">🗑 Hapus Semua</button>
+    </div>
+
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>No</th><th>Nama</th><th>L/P</th><th>Instansi</th><th>No. HP</th>
+            <th>Tujuan</th><th>Pegawai Dituju</th><th>Keperluan</th><th>Waktu</th><th>Aksi</th>
+          </tr></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ================= MODAL PENGATURAN ================= -->
+<div class="overlay" id="settingsModal">
+  <div class="modal">
+    <h3>⚙️ Pengaturan Akun Admin</h3>
+    <div class="field"><label>Username Baru</label><input type="text" id="setUser"></div>
+    <div class="field"><label>Password Saat Ini <b style="color:#e55039">*</b></label><input type="password" id="setOld" placeholder="Wajib diisi untuk konfirmasi"></div>
+    <div class="field"><label>Password Baru <small style="color:#94a3b8">(kosongkan jika tidak diubah)</small></label><input type="password" id="setNew" placeholder="Minimal 6 karakter"></div>
+    <div class="field"><label>Ulangi Password Baru</label><input type="password" id="setNew2"></div>
+    <p id="setError"></p>
+    <div class="modal-actions">
+      <button class="b-ghost" id="btnCancelSet">Batal</button>
+      <button class="b-primary" id="btnSaveSet">💾 Simpan</button>
+    </div>
+  </div>
+</div>
+
+<div id="toastArea"></div>
+
+<script>
+// Konfigurasi Firebase Resmi milik Project buku-tamu-85356
+const firebaseConfig = {
+  apiKey: "AIzaSyAEcjkYjDlIfg5I21CWjc62tj20IMOnERM",
+  authDomain: "buku-tamu-85356.firebaseapp.com",
+  databaseURL: "https://buku-tamu-85356-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "buku-tamu-85356",
+  storageBucket: "buku-tamu-85356.firebasestorage.app",
+  messagingSenderId: "285124299248",
+  appId: "1:285124299248:web:68489144063efcd0267535"
+};
+
+// ================== INISIALISASI DATABASE & DIAGNOSTIK ==================
+const connEl = document.getElementById('connStatus');
+let db = null, initOK = false, initPesan = '';
+
+function setConn(txt, cls){ 
+  if(connEl) {
+    connEl.innerHTML = txt; 
+    connEl.className = cls; 
+  }
+}
+
+(async function init(){
+  try{
+    if (typeof firebase === 'undefined'){
+      initPesan = '❌ Library Firebase gagal dimuat.<br>➡️ Nyalakan internet lalu refresh (Ctrl+Shift+R).';
+      setConn(initPesan,'bad'); return;
+    }
+    
+    // Inisialisasi Firebase App
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+
+    // Inisialisasi Database
+    db = firebase.database();
+
+    // Tes koneksi data
+    const terhubung = await new Promise(res=>{
+      const t = setTimeout(()=>res(false), 4000);
+      db.ref('.info/connected').once('value', s=>{ clearTimeout(t); res(s.val()===true); });
+    });
+
+    if(!terhubung){
+      try {
+        await db.ref('koneksi_tes').set(Date.now());
+      } catch(errConn) {
+        initPesan = '❌ Tidak bisa terhubung ke server Firebase.<br>➡️ Cek koneksi internet Anda.';
+        setConn(initPesan,'bad'); return;
+      }
+    }
+
+    initOK = true;
+    setConn('✅ Terhubung ke Firebase — siap login!','ok');
+
+    // Buat akun default otomatis jika belum ada di database
+    const s = await db.ref('pengaturan').once('value');
+    if(!s.exists()){
+      await db.ref('pengaturan').set({username:'admin', password:await hash('admin123')});
+      setConn('✅ Terhubung. Akun awal dibuat: admin / admin123','ok');
+    }
+
+  }catch(e){
+    initPesan = '❌ Error: ' + e.message;
+    setConn(initPesan,'bad');
+  }
+})();
+
+// ---------- Util ----------
+async function hash(t){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function esc(s){return (s||'').toString().replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+function formatWaktu(ts){return new Date(ts).toLocaleString('id-ID',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});}
+function tglISO(ts){const d=new Date(ts);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+
+// ---------- LOGIN ----------
+document.getElementById('loginForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const err = document.getElementById('loginError'); err.style.display='none';
+
+  if(!initOK){ 
+    err.innerHTML = initPesan; 
+    err.style.display='block'; 
+    return; 
+  }
+
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value;
+  document.getElementById('btnLogin').disabled = true;
+
+  try{
+    const acc = (await db.ref('pengaturan').once('value')).val();
+    if(acc && u === acc.username && (await hash(p)) === acc.password){
+      sessionStorage.setItem('bt_login','1');
+      enterDashboard();
+    }else{
+      err.textContent = '❌ Username atau password salah!';
+      err.style.display = 'block';
+    }
+  }catch(ex){
+    err.textContent = '❌ ' + ex.message;
+    err.style.display = 'block';
+  }
+  document.getElementById('btnLogin').disabled = false;
+});
+
+function enterDashboard(){
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('dashboard').style.display='block';
+  if('Notification' in window && Notification.permission==='default') Notification.requestPermission();
+  startListener();
+}
+if(sessionStorage.getItem('bt_login')==='1') enterDashboard();
+function logout(){ sessionStorage.removeItem('bt_login'); location.reload(); }
+
+// ---------- LISTENER REALTIME + NOTIFIKASI ----------
+let allData = {}, knownKeys = new Set(), initialLoaded = false, unreadCount = 0;
+let soundOn = localStorage.getItem('bt_sound') !== 'off';
+
+function startListener(){
+  db.ref('bukutamu').on('value', snap=>{
+    allData = snap.val() || {};
+    const keys = Object.keys(allData);
+    if(!initialLoaded){
+      keys.forEach(k=>knownKeys.add(k));
+      initialLoaded = true;
+    }else{
+      const newKeys = keys.filter(k=>!knownKeys.has(k));
+      newKeys.forEach(k=>{
+        knownKeys.add(k);
+        const t = allData[k];
+        playSound();
+        showToast('🔔 Tamu Baru Masuk!', `${esc(t.nama)} — ${esc(t.tujuan||'')}`);
+        if('Notification' in window && Notification.permission==='granted')
+          new Notification('📖 Buku Tamu Disnakertrans Maluku', {body:`${t.nama} — ${t.tujuan||''}`});
+      });
+      if(newKeys.length){ unreadCount += newKeys.length; updateBadge(); }
+    }
+    knownKeys = new Set(keys.filter(k=>knownKeys.has(k)));
+    renderTable(); updateStats();
+  });
+}
+
+document.getElementById('bellBtn').addEventListener('click',()=>{
+  unreadCount = 0; updateBadge();
+  showToast('✅ Selesai','Semua notifikasi ditandai sudah dibaca');
+});
+
+function updateBadge(){
+  const b = document.getElementById('badge');
+  b.textContent = unreadCount;
+  b.style.display = unreadCount > 0 ? 'flex' : 'none';
+  document.getElementById('statUnread').textContent = unreadCount;
+}
+
+function playSound(){
+  if(!soundOn) return;
+  try{
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    [880, 1174.66].forEach((f,i)=>{
+      const o=ctx.createOscillator(), g=ctx.createGain();
+      o.type='sine'; o.frequency.value=f; o.connect(g); g.connect(ctx.destination);
+      const t = ctx.currentTime + i*0.18;
+      g.gain.setValueAtTime(0.0001,t);
+      g.gain.exponentialRampToValueAtTime(0.25,t+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+0.35);
+      o.start(t); o.stop(t+0.4);
+    });
+  }catch(e){}
+}
+const sndBtn = document.getElementById('soundBtn');
+function renderSound(){ sndBtn.textContent = soundOn ? '🔊' : '🔇'; }
+sndBtn.addEventListener('click',()=>{ soundOn=!soundOn; localStorage.setItem('bt_sound',soundOn?'on':'off'); renderSound(); });
+renderSound();
+
+// ---------- TABEL ----------
+function renderTable(){
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const df = document.getElementById('dateFilter').value;
+  const keys = Object.keys(allData).sort((a,b)=>(allData[b].waktu||0)-(allData[a].waktu||0));
+  let rows='', no=1;
+  keys.forEach(k=>{
+    const t = allData[k];
+    const cocokQ = !q || (t.nama||'').toLowerCase().includes(q) || (t.instansi||'').toLowerCase().includes(q)
+                 || (t.tujuan||'').toLowerCase().includes(q) || (t.pegawai||'').toLowerCase().includes(q)
+                 || (t.nohp||'').includes(q);
+    const cocokT = !df || tglISO(t.waktu||Date.now()) === df;
+    if(cocokQ && cocokT){
+      rows += `<tr>
+        <td>${no++}</td>
+        <td><b>${esc(t.nama)}</b></td>
+        <td>${esc(t.jk)}</td>
+        <td>${esc(t.instansi)}</td>
+        <td>${esc(t.nohp)}</td>
+        <td><span class="tag">${esc(t.tujuan)}</span></td>
+        <td>${esc(t.pegawai)}</td>
+        <td>${esc(t.keperluan)}</td>
+        <td class="waktu-cell">${formatWaktu(t.waktu||Date.now())}</td>
+        <td><button class="btn-del" onclick="hapusData('${k}')" title="Hapus">🗑</button></td>
+      </tr>`;
+    }
+  });
+  document.getElementById('tableBody').innerHTML =
+    rows || '<tr><td colspan="10" class="empty">📭 Belum ada data tamu</td></tr>';
+}
+document.getElementById('searchInput').addEventListener('input', renderTable);
+document.getElementById('dateFilter').addEventListener('change', renderTable);
+
+function updateStats(){
+  const keys = Object.keys(allData);
+  document.getElementById('statTotal').textContent = keys.length;
+  let n=0, lamar=0;
+  keys.forEach(k=>{
+    if(tglISO(allData[k].waktu||0)===tglISO(Date.now())) n++;
+    if((allData[k].tujuan||'').toLowerCase().includes('lamar')) lamar++;
+  });
+  document.getElementById('statToday').textContent = n;
+  document.getElementById('statLamar').textContent = lamar;
+}
+
+function hapusData(k){
+  if(confirm('Hapus data tamu ini?')){
+    db.ref('bukutamu/'+k).remove();
+    showToast('🗑 Terhapus','Data tamu berhasil dihapus');
+  }
+}
+function hapusSemua(){
+  if(confirm('Yakin ingin menghapus SEMUA data tamu?') && confirm('Data tidak bisa dikembalikan. Lanjutkan?'))
+    db.ref('bukutamu').remove();
+}
+
+// ---------- EXPORT CSV ----------
+function exportCSV(){
+  const keys = Object.keys(allData).sort((a,b)=>(allData[a].waktu||0)-(allData[b].waktu||0));
+  if(!keys.length){ alert('Belum ada data untuk diexport'); return; }
+  let csv = 'No;Nama;JK;Instansi;No HP;Maksud Tujuan;Pegawai Dituju;Keperluan;Waktu\n';
+  keys.forEach((k,i)=>{
+    const t = allData[k];
+    csv += `${i+1};${t.nama};${t.jk};${t.instansi};${t.nohp};${t.tujuan};${t.pegawai};${(t.keperluan||'').replace(/[\n;]/g,' ')};${formatWaktu(t.waktu)}\n`;
+  });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}));
+  a.download = 'buku-tamu-disnakertrans-'+tglISO(Date.now())+'.csv'; a.click();
+}
+
+// ---------- PENGATURAN AKUN ----------
+const sm = document.getElementById('settingsModal');
+document.getElementById('btnSettings').addEventListener('click', async ()=>{
+  const acc = (await db.ref('pengaturan').once('value')).val();
+  document.getElementById('setUser').value = acc.username;
+  document.getElementById('setError').textContent = '';
+  sm.classList.add('show');
+});
+document.getElementById('btnCancelSet').addEventListener('click',()=>sm.classList.remove('show'));
+
+document.getElementById('btnSaveSet').addEventListener('click', async ()=>{
+  const u   = document.getElementById('setUser').value.trim();
+  const old = document.getElementById('setOld').value;
+  const n1  = document.getElementById('setNew').value;
+  const n2  = document.getElementById('setNew2').value;
+  const err = document.getElementById('setError'); err.textContent='';
+  if(!u){ err.textContent='Username tidak boleh kosong'; return; }
+  const acc = (await db.ref('pengaturan').once('value')).val();
+  if((await hash(old)) !== acc.password){ err.textContent='❌ Password saat ini salah!'; return; }
+  const update = {};
+  if(u !== acc.username) update.username = u;
+  if(n1 || n2){
+    if(n1.length < 6){ err.textContent='Password baru minimal 6 karakter'; return; }
+    if(n1 !== n2){ err.textContent='Konfirmasi password tidak sama'; return; }
+    update.password = await hash(n1);
+  }
+  if(!Object.keys(update).length){ err.textContent='Tidak ada perubahan'; return; }
+  await db.ref('pengaturan').update(update);
+  document.getElementById('setOld').value=''; document.getElementById('setNew').value=''; document.getElementById('setNew2').value='';
+  sm.classList.remove('show');
+  showToast('✅ Berhasil','Username / password berhasil diperbarui');
+});
+
+// ---------- TOAST ----------
+function showToast(title, msg){
+  const area = document.getElementById('toastArea');
+  const el = document.createElement('div');
+  el.className='toast';
+  el.innerHTML = `<div style="font-size:20px">🔔</div><div><b>${title}</b><p>${msg}</p></div>`;
+  area.appendChild(el);
+  setTimeout(()=>{ el.style.opacity='0'; el.style.transform='translateX(120%)'; setTimeout(()=>el.remove(),350); }, 5000);
+}
+</script>
+</body>
+</html>
